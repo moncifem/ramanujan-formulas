@@ -60,40 +60,37 @@ class BreakthroughInjector:
 
         # 1. Known Ramanujan Constants (Heegner numbers)
         # These are the best starting points for mutation.
-        for d in [163, 67, 43, 19]:
+        for d in [163, 67, 43, 19, 58, 37]:
             expressions.append(f"mp.exp(mp.pi * mp.sqrt({d}))")
         
-        # 2. Ramanujan's class invariants G_n (approximate integers)
-        # G_n = 2^(-1/4) * e^(pi*sqrt(n)/24) * ...
-        # We try the raw exponential form which often is close to integer
-        for d in [58, 93, 37]:
-             expressions.append(f"mp.exp(mp.pi * mp.sqrt({d})) / 24") # Often close to integer
-        
-        # 3. Pi approximations (Ramanujan's style)
+        # 2. Variations on the Heegner theme
         expressions.extend([
-            "9801 / (mp.sqrt(8) * 1103)", # Approx for pi/4 * ... related to 1/pi
-            "mp.exp(mp.pi * mp.sqrt(58)) / 396**4", # Related to 1/pi series
-        ])
-
-        # 4. Mathematical Constants Coincidences
-        expressions.extend([
-            "mp.exp(mp.pi) - mp.pi", # Close to 20
-            "mp.pi**4 + mp.pi**5 - mp.e**6", # Near zero/integer?
-            "163 * (mp.pi - mp.e)", # Random check
+            "mp.exp(mp.pi * mp.sqrt(163)) / 262537412640768744",
+            "mp.exp(mp.pi * mp.sqrt(58))",
+            "mp.exp(mp.pi * mp.sqrt(37))",
         ])
         
-        # 5. Complex function values near integers
-        # j-function(tau) is integer for complex multiplication CM points
-        # j(i) = 1728
+        # 3. Other near-integer formulas
         expressions.extend([
-            "1728", # Exact
-            "mp.jtheta(3, 0, mp.exp(-mp.pi))**4", # Exact?
-            "mp.exp(mp.pi * mp.sqrt(22)) - 2500000", # Example
+            "mp.pi * mp.e * mp.phi",  # Explore constant products
+            "(mp.pi**2 + mp.e**2) / 5",  # Combinations
+            "mp.log(mp.log(mp.exp(mp.exp(mp.e))))",  # Nested functions
+        ])
+        
+        # 4. Theta function explorations
+        for q_exp in [1, 2, 3, 4, 5]:
+            expressions.append(f"mp.jtheta(3, 0, mp.exp(-mp.pi * {q_exp}))")
+        
+        # 5. Simple but effective seeds
+        expressions.extend([
+            "mp.sqrt(2) * mp.sqrt(3) * mp.sqrt(5)",
+            "mp.gamma(1/3) * mp.gamma(2/3)",
+            "mp.zeta(3) * 120",
         ])
 
-        # Fill the rest with variations
-        while len(expressions) < count:
-            d = random.randint(20, 200)
+        # Fill the rest with systematic exploration
+        discriminants = [11, 13, 17, 23, 29, 31, 37, 41, 47, 53, 59, 61, 71, 73, 79, 83, 89, 97]
+        for d in discriminants[:count - len(expressions)]:
             expressions.append(f"mp.exp(mp.pi * mp.sqrt({d}))")
 
         # Remove duplicates and return
@@ -118,8 +115,8 @@ class BreakthroughInjector:
         """
         current_pool = state.get("best_candidates", [])
         
-        # Generate high-quality seeds
-        seeds = self.generate_breakthrough_batch(10)
+        # Generate high-quality seeds (increase to 20 for better bootstrapping)
+        seeds = self.generate_breakthrough_batch(20)
         
         # Create fake candidates for these seeds
         from .utils import evaluate_expression, compute_error, compute_elegance_score

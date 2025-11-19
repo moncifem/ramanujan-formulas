@@ -38,4 +38,5 @@ class State(TypedDict):
     tested_values: Annotated[Set[str], operator.or_]
     recent_failures: List[str]
     iteration: int
+    last_pool_size: int  # Track pool size to detect stagnation
 

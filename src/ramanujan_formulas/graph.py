@@ -29,6 +29,9 @@ from .pslq import analyze_discovery_with_pslq
 from .symbolic_simplifier import try_simplify_expression
 from .stability_tester import validate_discovery_stability
 from .breakthrough_injector import inject_breakthroughs, get_breakthrough_injector
+from .creative_mathematician import inject_creative_expressions
+from .ai_novelty_critic import apply_ai_guidance
+from .breakthrough_hunter import hunt_for_breakthrough
 from .config import (
     SWARM_SIZE,
     MAX_ITERATIONS,
@@ -324,7 +327,7 @@ class RamanujanGraph:
             "iteration": current_iter + 1
         }
     
-    def _route_to_swarm(self, state: State) -> str | List[Send]:
+    async def _route_to_swarm(self, state: State) -> str | List[Send]:
         """
         Routing function: determines whether to continue or end.
 
@@ -337,9 +340,38 @@ class RamanujanGraph:
         iteration = state.get("iteration", 1)
         discoveries = state.get("discoveries", [])
 
-        # Inject breakthrough expressions every few iterations
+        # Multi-strategy injection system
         if iteration % 3 == 0 and iteration > 1:
             state = inject_breakthroughs(state)
+        
+        # Apply AI guidance every 5 iterations (disabled for now due to async issues)
+        # if iteration % 5 == 0 and iteration > 1:
+        #     state = await apply_ai_guidance(state)
+        
+        # Inject creative expressions when stuck (no new candidates for 2 iterations)
+        pool_size = len(state.get("best_candidates", []))
+        if pool_size < 5 or (iteration > 3 and pool_size == state.get("last_pool_size", 0)):
+            # For now, use breakthrough injector more frequently instead
+            state = inject_breakthroughs(state)
+            print(f"  🎨 Extra injection due to stagnation (pool size: {pool_size})")
+        
+        # Hunt for breakthrough when we have ultra-high precision candidates
+        if any(c["error"] < 1e-12 for c in state.get("best_candidates", [])):
+            import asyncio
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # We're already in async context, create task
+                task = asyncio.create_task(hunt_for_breakthrough(state))
+                breakthrough_exprs = loop.run_until_complete(task) if not loop.is_running() else []
+            else:
+                breakthrough_exprs = asyncio.run(hunt_for_breakthrough(state))
+            
+            if breakthrough_exprs:
+                current_proposed = state.get("proposed_expressions", [])
+                state["proposed_expressions"] = breakthrough_exprs + current_proposed
+                print(f"  🔬 Injected {len(breakthrough_exprs)} breakthrough candidates")
+        
+        state["last_pool_size"] = pool_size
         
         # Check stopping conditions
         if iteration > MAX_ITERATIONS:
@@ -351,6 +383,7 @@ class RamanujanGraph:
             return END
         
         # Continue: spawn swarm of proposers
+        # Ensure the latest candidates from injection are used
         payload = ProposerInput(
             best_candidates=state.get("best_candidates", []),
             recent_failures=state.get("recent_failures", []),
@@ -406,13 +439,22 @@ def create_graph() -> RamanujanGraph:
 
 def create_initial_state() -> State:
     """Create the initial state for a new run."""
-    return State(
+    state = State(
         proposed_expressions=[],
         best_candidates=[],
         discoveries=[],
         tested_hashes=set(),
         tested_values=set(),
         recent_failures=[],
-        iteration=1
+        iteration=1,
+        last_pool_size=0
     )
+    
+    # Initial injection to bootstrap the process
+    state = inject_breakthroughs(state)
+    
+    # Note: Creative expressions will be injected in the first routing step
+    # to avoid asyncio issues
+    
+    return state
 

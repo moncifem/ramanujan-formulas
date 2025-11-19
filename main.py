@@ -7,6 +7,12 @@ import asyncio
 import sys
 import time
 from datetime import datetime
+import os
+
+# Fix Windows Unicode issues
+if sys.platform == "win32":
+    os.environ["PYTHONIOENCODING"] = "utf-8"
+    sys.stdout.reconfigure(encoding='utf-8')
 
 from src.ramanujan_formulas.config import (
     validate_config,

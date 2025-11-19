@@ -1,0 +1,9 @@
+{
+  "expression": "mp.jtheta(4, 0, mp.exp(-mp.pi * mp.sqrt(130)))**mp.phi",
+  "value": "0.99999999999999910105371176645845720262527051233481336049667782880026846309213300315281189462935961",
+  "error": 8.989462882335415e-16,
+  "discriminant": 130,
+  "exponent": "phi (golden ratio)",
+  "significance": "Ultra-high precision approximation to 1",
+  "conjecture": "Possible new modular identity involving golden ratio"
+}

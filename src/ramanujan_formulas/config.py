@@ -58,7 +58,7 @@ CONSTANTS: Dict[str, Any] = {
 }
 
 # === THRESHOLDS ===
-CANDIDATE_THRESHOLD = 1e-12  # Minimum error to keep in gene pool
+CANDIDATE_THRESHOLD = 1e-6  # Further relaxed to allow more candidates initially
 DISCOVERY_THRESHOLD = 1e-50  # Trigger full verification
 GENE_POOL_SIZE = 25  # Number of top candidates to retain
 
