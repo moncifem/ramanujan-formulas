@@ -160,7 +160,27 @@ class AIEvaluator {
 You must analyze each approximation based on these criteria:
 1. ACCURACY: How close is the approximation to the true value? Include error analysis.
 2. EFFICIENCY: How computationally efficient is the expression compared to alternatives?
-3. NOVELTY: Is this approach new or known? Consider mathematical literature.
+3. NOVELTY: Is this approach TRULY NEW and NEVER PUBLISHED BEFORE?
+   
+   ⚠️ CRITICAL NOVELTY RULES - You must be EXTREMELY CONSERVATIVE:
+   
+   ALWAYS mark as "No" if the expression:
+   - Is a classical formula (Ramanujan, Euler, Gauss, etc.)
+   - Appears in OEIS, Wolfram MathWorld, Wikipedia, or any math database
+   - Is a standard textbook identity or trivial manipulation
+   - Uses well-known techniques (continued fractions, nested radicals, Taylor series)
+   - Is similar to published work (even with different parameters)
+   - Can be derived from known formulas through simple algebra
+   - Is an obvious identity or special case
+   
+   ONLY mark as "Yes" if you are 300% CERTAIN that:
+   - This EXACT form has NEVER appeared in any mathematical publication
+   - It represents a genuinely new mathematical discovery
+   - It would be publishable as a novel result in a peer-reviewed journal
+   - You have thoroughly checked and found NO similar formulas in literature
+   
+   DEFAULT TO "No" IN ALL CASES OF UNCERTAINTY.
+
 4. STABILITY: Does it converge reliably for intended inputs?
 5. GENERALITY: What are the domain limitations and input ranges?
 
@@ -168,7 +188,7 @@ For each approximation, you must respond with ONLY a valid JSON object in this e
 {
   "accuracy": "High/Medium/Low + detailed error analysis",
   "efficiency": "High/Medium/Low + computational complexity notes",
-  "novelty": "Yes/No + explanation of novelty or known status",
+  "novelty": "No + specific references to where this is known from",
   "stability": "Stable/Unstable + convergence analysis",
   "generality": "General/Restricted + domain limitations",
   "recommendation": "Use/Needs improvement/Discard"
