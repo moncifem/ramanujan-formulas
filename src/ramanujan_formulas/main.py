@@ -8,7 +8,7 @@ import sys
 import time
 from datetime import datetime
 
-from src.ramanujan_formulas.config import (
+from .config import (
     validate_config,
     RESULTS_DIR,
     SWARM_SIZE,
@@ -16,8 +16,8 @@ from src.ramanujan_formulas.config import (
     LLM_MAX_TOKENS,
     LLM_MODEL,
 )
-from src.ramanujan_formulas.graph import create_graph, create_initial_state
-from src.ramanujan_formulas.verification import initialize_report
+from .graph import create_graph, create_initial_state
+from .verification import initialize_report
 
 
 def print_banner():
@@ -63,7 +63,9 @@ Discoveries:        {len(discoveries)}
     if discoveries:
         summary += "Novel Discoveries:\n"
         for i, disc in enumerate(discoveries, 1):
-            summary += f"  {i}. Error: 10^{int(disc['error'])} - {disc['expression'][:50]}...\n"
+            import math
+            exp = int(math.log10(disc['error'])) if disc['error'] > 0 else -999
+            summary += f"  {i}. Error: 10^{exp} - {disc['expression'][:50]}...\n"
     
     summary += f"\n{'='*70}\n"
     
@@ -118,6 +120,3 @@ async def main():
         traceback.print_exc()
         return 1
 
-
-if __name__ == "__main__":
-    sys.exit(asyncio.run(main()))
