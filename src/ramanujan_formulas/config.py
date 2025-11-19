@@ -75,9 +75,9 @@ SEQUENCE_LENGTH = 50  # Evaluate f(n) for n=1..50
 MIN_PATTERN_SIGNIFICANCE = 3  # Require pattern in at least 3 consecutive terms
 
 # === SCORING PARAMETERS ===
-COMPLEXITY_PENALTY = 0.03  # Penalty per character in expression
-EXPLORATION_RATE_INITIAL = 0.8  # Start with very high exploration (80%)
-EXPLORATION_RATE_MIN = 0.5  # Maintain 50% exploration even late in run
+COMPLEXITY_PENALTY = 0.01  # Reduced penalty to allow for longer theta functions
+EXPLORATION_RATE_INITIAL = 0.9  # Increase initial exploration
+EXPLORATION_RATE_MIN = 0.6  # Keep exploration high
 
 # === LLM CONFIGURATION ===
 SUPPORTED_LLM_MODELS: Dict[str, Dict[str, Any]] = {

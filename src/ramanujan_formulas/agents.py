@@ -21,6 +21,7 @@ from .config import (
 )
 from .types import ProposerInput, Candidate
 from .search_templates import SearchTemplates
+from .polylog_explorer import generate_advanced_expressions
 
 
 class ProposerAgent:
@@ -51,6 +52,7 @@ class ProposerAgent:
             Dictionary with 'proposed_expressions' key containing list of expressions
         """
         pool = state.get("best_candidates", [])
+        failures = state.get("recent_failures", [])
         iter_num = state.get("iteration", 1)
         
         # Compute exploration rate (decreases over time)
@@ -63,20 +65,24 @@ class ProposerAgent:
         is_exploration = (not pool) or (random.random() < exploration_rate)
         
         if is_exploration:
-            prompt = self._build_exploration_prompt()
+            prompt = self._build_exploration_prompt(failures)
         else:
-            prompt = self._build_exploitation_prompt(pool)
+            prompt = self._build_exploitation_prompt(pool, failures)
+        
+        # Add a random seed to the prompt to prevent duplicate outputs from deterministic LLM
+        random_seed = random.randint(1, 100000)
+        prompt_seed = f"\n\nRandom Seed: {random_seed} (Ignore this, just for variability)"
         
         # Query LLM
         try:
-            response = await self.llm.ainvoke([HumanMessage(content=prompt)])
+            response = await self.llm.ainvoke([HumanMessage(content=prompt + prompt_seed)])
             expressions = self._parse_llm_response(response.content)
             return {"proposed_expressions": expressions}
         except Exception as e:
             print(f"⚠️  Proposer error: {e}")
             return {"proposed_expressions": []}
     
-    def _build_exploration_prompt(self) -> str:
+    def _build_exploration_prompt(self, failures: List[str]) -> str:
         """Build prompt for exploration mode (novel expressions)."""
         constants_list = ", ".join(CONSTANTS.keys())
 
@@ -85,133 +91,76 @@ class ProposerAgent:
         path_b_examples = SearchTemplates.generate_path_b_gamma_asymmetric()
         mixed_examples = SearchTemplates.generate_mixed_special_functions()
 
+        # Add advanced special function examples
+        advanced_examples = generate_advanced_expressions("mixed")
+
+        failures_text = ""
+        if failures:
+            failures_text = "**RECENT FAILURES (DO NOT REPEAT THESE):**\n" + "\n".join([f"- {f}" for f in failures[:8]])
+
         return f"""You are a mathematical discovery agent searching for GENUINELY NEW identities.
 
 **Your Task**: Generate 12 expressions using mpmath (aliased as 'mp').
 
 **Available Constants**: {constants_list}
 
-**🚨 CRITICAL - YOU ARE REDISCOVERING TEXTBOOK IDENTITIES 🚨**
+{failures_text}
 
-Your recent attempts found:
-- Γ(x)Γ(1-x)/π = 1/sin(πx) ← Euler reflection (1729!)
-- exp(π√163) ≈ integer ← Heegner (1952!)
-- exp(x)/sinh(x) → 2 ← Trivial calculus!
+**🚨 CRITICAL WARNING 🚨**
+You have been generating TRIVIAL identities or variations of the same known things.
+- STOP using `mp.exp(mp.pi * mp.sqrt(d)) / (mp.sinh(...) / n)` -> This just approaches `2n` trivially!
+- STOP using Euler reflection `gamma(x)gamma(1-x)`.
+- STOP finding just another Heegner number approximation.
 
-**ALL OF THESE ARE IN TEXTBOOKS. THEY ARE NOT NEW.**
+**WE NEED STRUCTURAL NOVELTY.**
 
----
+**✅ PATH A: Infinite Series & Products**
+Ramanujan loved infinite series. Use `mp.nsum` and `mp.nprod` (but written as finite expressions or using mpmath's efficient functions if possible, OR just standard functions that represent them).
+Actually, mpmath has `mp.polylog`, `mp.zeta`, `mp.ellipk`. Use them!
 
-**✅ PATH A: Hyperbolic with NON-STANDARD discriminants**
+**✅ PATH B: Modular Forms & Theta Functions**
+Use `mp.jtheta(n, z, q)` with interesting q-values (like `exp(-pi*sqrt(d))`).
+Ramanujan's "mock theta functions" are still mysterious.
+Try combinations like: `mp.jtheta(3, 0, mp.exp(-mp.pi*mp.sqrt(d)))`.
 
-Use these template structures (with DIFFERENT numbers each time):
-{chr(10).join(f'- {ex}' for ex in path_a_examples[:2])}
+**✅ PATH C: Continued Fractions**
+Represent continued fractions using recursive structures or specialized functions if available.
+Or just expressions involving nested radicals:
+`mp.sqrt(6 + 2*mp.sqrt(7 + 3*mp.sqrt(8 + ...)))` (finite truncation)
 
-**Key**: Use discriminants NOT in {{19,43,67,163,232,427,522,652}}
-Try: {{13,17,21,23,29,31,33,37,41,47,53,57,61,69,71,73,77,79,83,89,...}}
-
----
-
-**✅ PATH B: Gamma with ASYMMETRIC (not complementary!) combinations**
-
-Use these template structures:
-{chr(10).join(f'- {ex}' for ex in path_b_examples[:2])}
-
-**Key**:
-- DO NOT use Γ(a/p) × Γ((p-a)/p) - that's Euler reflection!
-- USE Γ(a/p)^k × Γ(b/p)^m where a+b ≠ p
-- Try large primes p: 17, 19, 23, 29, 31, 37, 41, 47, 53, 59, 61, 67, 71...
-
----
-
-**✅ PATH C: Mixed special functions**
-
-Examples:
-{chr(10).join(f'- {ex}' for ex in mixed_examples[:2])}
-
-**Key**: Combine Γ, ζ, ellipk, hyp2f1 in unexpected ways
-
-**CRITICAL RULES**:
-❌ DO NOT use large numbers (>1000) - only use mathematical constants and small integers!
-❌ DO NOT use computed values as constants (like 262537412640768744 or 640320)
-❌ DO NOT create expressions that equal ZERO (like mp.phi**2 - mp.phi - 1)
-❌ DO NOT create expressions that equal EXACT INTEGERS (like mp.phi**10 + mp.phi**(-10) = 123)
-❌ DO NOT use Lucas number patterns: mp.phi**n + mp.phi**(-n) always equals an integer
-❌ DO NOT create trivial algebraic identities (like a - a or x + y - x - y)
-✅ ONLY use: pi, e, phi, sqrt2, sqrt3, sqrt5, zeta3, catalan, euler, and integers 1-1000
-✅ DO create expressions that are CLOSE to integers but NOT exact (small non-zero error)
-✅ Example: mp.exp(mp.pi * mp.sqrt(163)) ≈ some large integer (discovery!)
+**✅ PATH D: Gamma & Zeta Asymmetries**
+Use `mp.gamma(a/b)` where `a/b` has large denominator (e.g., 13, 17, 19).
+Mix `mp.zeta(s)` with `mp.pi` and `mp.phi` in unexpected ratios.
 
 **Techniques to Try** (SEARCH FOR NOVELTY):
 
-**1. Mixed Special Function Products** (NOT just Heegner!):
-- mp.gamma(1/5) * mp.zeta(5) / mp.ellipk(1/3)
-- mp.hyp2f1(1/3, 2/3, 1, 1/4) * mp.zeta(3)
-- mp.ellipe(phi/5) / mp.gamma(3/7)
+**1. Mixed Special Function Products**:
+- `mp.gamma(1/5) * mp.zeta(5) / mp.ellipk(1/3)`
+- `mp.hyp2f1(1/3, 2/3, 1, 1/4) * mp.zeta(3)`
 
 **2. Unexpected Ratios**:
-- mp.zeta(5) * mp.zeta(7) / (mp.pi**12)
-- mp.gamma(1/7) / (mp.gamma(2/7) * mp.gamma(4/7))
-- mp.ellipk(1/3) / mp.ellipk(1/5)
+- `mp.zeta(5) * mp.zeta(7) / (mp.pi**12)`
+- `mp.ellipk(1/3) / mp.ellipk(1/5)`
 
-**3. Zeta Function Relationships** (Ramanujan's favorite):
-- mp.zeta(2) * mp.zeta(3) / mp.pi**5
-- mp.zeta(4) / mp.pi**4
-- mp.zeta(5) * mp.phi**2
-- zeta2, zeta3, zeta4, zeta5, zeta6 are all available!
+**3. Advanced Functions**:
+- `mp.polylog(3, mp.phi/3)`
+- `mp.agm(1, mp.sqrt(2))`
+- `mp.besselj(0, mp.pi)`
 
-**4. Gamma Function** (factorials):
-- mp.gamma(1/3) * mp.gamma(2/3) / mp.pi
-- mp.gamma(1/4)**4 / mp.pi**2
-- mp.factorial(20) / mp.e**20
-
-**5. Nested Radicals** (Ramanujan's specialty):
-- mp.sqrt(1 + 2*mp.sqrt(1 + 3*mp.sqrt(1 + 4*mp.sqrt(1 + ...))))
-- mp.sqrt(mp.phi + mp.sqrt(mp.phi + mp.sqrt(mp.phi)))
-
-**6. Mixed Operations**:
-- mp.log(mp.gamma(1/4)) * mp.sqrt(mp.pi)
-- mp.sin(mp.pi/5) * mp.phi**2
-- mp.log(epi) / mp.log(pie)  # epi and pie are available!
-
-**7. Elliptic Integrals** (advanced):
-- mp.ellipk(1/2) / mp.pi
-- mp.ellipe(mp.phi/3)
-
-**8. Hypergeometric Functions**:
-- mp.hyp2f1(1/2, 1/2, 1, mp.phi/2)
-- mp.hyp1f1(1, 2, mp.pi)
-
-**Examples of GOOD Ramanujan-style expressions**:
-- "mp.exp(mp.pi * mp.sqrt(163))" (Heegner number - his most famous!)
-- "mp.gamma(1/4) / (mp.pi**(3/4))" (Gamma function relationship)
-- "mp.zeta(2) * 6 / mp.pi**2" (should equal 1 - Basel problem)
-- "mp.sinh(mp.pi * mp.sqrt(522)) / mp.exp(mp.pi * mp.sqrt(522))" (hyperbolic)
-- "mp.ellipk(1/2)**2 / mp.pi" (elliptic integral)
-- "mp.hyp2f1(1/2, 1/2, 1, 1/2)" (hypergeometric)
-- "mp.sqrt(phi + mp.sqrt(phi))" (nested radical)
-- "mp.log(epi) - mp.pi" (should be near 0)
-- "mp.gamma(1/3) * mp.gamma(2/3) / mp.sqrt(mp.pi)" (reflection formula)
-
-**🚨 CRITICAL - DIVERSITY REQUIREMENT 🚨**:
-- Each expression MUST be significantly different from previous ones
-- DO NOT just change one number in a formula
-- DO NOT add/subtract integers to make expressions (like "... - 162")
-- Explore DIFFERENT mathematical structures, not variations of the same theme
-- Mix constants in NEW ways each time
-
-**Examples of BAD expressions to AVOID**:
-- "mp.exp(mp.pi * mp.sqrt(163)) / 262537412640768744" (uses computed result as constant!)
-- "mp.log(640320**3 + 744) / (mp.pi * mp.sqrt(163)) - 162" (subtracting integers)
-- "mp.phi**10 + mp.phi**(-10)" (Lucas number = exact integer 123)
-- "mp.phi**2 - mp.phi - 1" (equals zero exactly)
-- "mp.pi" (just a constant)
-- "mp.e * mp.e - mp.e**2" (trivial identity = 0)
+**CRITICAL RULES**:
+❌ DO NOT use large numbers (>1000) - only use mathematical constants and small integers!
+❌ DO NOT use computed values as constants (like 262537412640768744)
+❌ DO NOT create expressions that equal ZERO (like `mp.phi**2 - mp.phi - 1`)
+❌ DO NOT create expressions that equal EXACT INTEGERS
+❌ DO NOT create trivial algebraic identities (like `a - a`)
+❌ AVOID `exp/sinh` ratios unless you are sure they are non-trivial.
+✅ ONLY use: pi, e, phi, sqrt2, sqrt3, sqrt5, zeta3, catalan, euler, and integers 1-1000
+✅ DO create expressions that are CLOSE to integers but NOT exact.
 
 **Output Format**: Return ONLY a Python list of strings, nothing else.
 ["expression1", "expression2", ...]"""
     
-    def _build_exploitation_prompt(self, pool: List[Candidate]) -> str:
+    def _build_exploitation_prompt(self, pool: List[Candidate], failures: List[str]) -> str:
         """Build prompt for exploitation mode (mutate best candidates)."""
         # Select top candidates as parents
         parents = sorted(
@@ -226,6 +175,10 @@ Examples:
             parents_info.append(f"- `{p['expression']}` (Error: 10^{error_exp})")
         
         parents_text = "\n".join(parents_info)
+
+        failures_text = ""
+        if failures:
+            failures_text = "**AVOID THESE FAILED ATTEMPTS:**\n" + "\n".join([f"- {f}" for f in failures[:5]])
         
         return f"""You are a genetic algorithm optimizer for mathematical formulas.
 
@@ -234,39 +187,20 @@ Examples:
 
 **Your Mission**: Create 12 improved mutants with HIGHER precision and ELEGANCE.
 
+{failures_text}
+
+**Mutation Strategies** (STRUCTURAL CHANGES):
+1. **Generalize**: If parent has `sqrt(163)`, try `sqrt(d)` for other `d`. But AVOID known Heegner numbers if they failed.
+2. **Function Swap**: Replace `exp` with `jtheta`, `ellipk`, or `besselj`.
+3. **Argument Shift**: If `gamma(1/4)`, try `gamma(1/5)` or `gamma(2/7)`.
+4. **Structure Nesting**: Wrap the parent in `mp.log(...)` or `mp.sqrt(...)`.
+5. **Constants Mix**: Multiply by `mp.zeta(3)` or divide by `mp.catalan`.
+
 **CRITICAL RULES**:
-❌ DO NOT use large numbers (>1000) - expressions will be REJECTED!
-❌ DO NOT use computed values (like 262537412640768744, 640320**3, etc.)
-❌ DO NOT create expressions that equal ZERO
-❌ DO NOT create expressions that equal EXACT INTEGERS
-❌ DO NOT use Lucas numbers: phi**n + phi**(-n) = exact integer (forbidden!)
-❌ DO NOT create "expression ± integer" patterns (like parent - 162)
-✅ ONLY use mathematical constants (pi, e, phi, etc.) and small integers (1-1000)
-✅ DO improve expressions that are NEAR integers (small non-zero error)
-✅ DO make mutations that bring near-integers EVEN CLOSER (reduce error)
-
-**Mutation Strategies** (RAMANUJAN-STYLE evolution):
-1. **Try different Heegner numbers**: sqrt(19), sqrt(43), sqrt(67), sqrt(163), sqrt(232), sqrt(427), sqrt(522), sqrt(652)
-2. **Add special functions**: Replace exp() with sinh(), cosh(), gamma(), zeta(), ellipk()
-3. **Hybridization**: Combine both parents with * or / operations
-4. **Use new constants**: zeta2, zeta4, zeta5, epi, pie, pisq
-5. **Add nested structure**: sqrt(parent + sqrt(parent))
-6. **Elliptic/Hypergeometric**: Wrap in mp.ellipk(), mp.hyp2f1()
-7. **Gamma relationships**: Use mp.gamma(rational) with small fractions
-8. **Zeta combinations**: Multiply by zeta values or divide by pi powers
-
-**🚨 CRITICAL DIVERSITY RULES 🚨**:
-- Don't just add tiny corrections to the same expression!
-- Don't create "expression ± integer" patterns (like parent - 162)
-- Change the STRUCTURE, not just the numbers
-- Explore NEW mathematical territory with different operations
-- If parent uses exp(), try log(), sin(), power, or sqrt() instead
-
-**Quality Criteria**:
-- Error must be SMALLER than parents (closer to integer/constant)
-- Expression should be ELEGANT (avoid bloat)
-- Must NOT evaluate to zero or near-zero
-- Maintain mathematical beauty
+❌ DO NOT use large numbers (>1000).
+❌ DO NOT use computed float values as constants.
+❌ DO NOT create trivial identities.
+✅ Explore the neighborhood of the parents but don't be afraid to change the functional form significantly.
 
 **Output Format**: Return ONLY a Python list of 12 expression strings.
 ["mutant1", "mutant2", ...]"""
@@ -335,4 +269,3 @@ async def proposal_node(state: ProposerInput) -> dict:
     """
     agent = get_proposer_agent()
     return await agent.propose(state)
-

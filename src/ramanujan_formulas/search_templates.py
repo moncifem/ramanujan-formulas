@@ -1,6 +1,6 @@
 """
 Search templates for genuine mathematical discovery.
-Based on expert recommendations for Path A (hyperbolic) and Path B (Gamma).
+Based on expert recommendations for Path A (modular) and Path B (Gamma).
 """
 
 import random
@@ -30,24 +30,23 @@ class SearchTemplates:
     @staticmethod
     def generate_path_a_hyperbolic() -> List[str]:
         """
-        PATH A: Hyperbolic/exponential with NON-STANDARD discriminants.
-
-        Template: exp(π√D) / (sinh/cosh combinations)
-        where D is NOT in {19, 43, 67, 163, 232, 427, 522, 652}
+        PATH A: Modular forms and Theta functions (Structural Novelty).
+        Avoids trivial exp/sinh ratios. Uses jtheta and elliptic integrals.
         """
         expressions = []
 
         for _ in range(4):  # Generate 4 expressions
             D = random.choice(SearchTemplates.NOVEL_DISCRIMINANTS)
-            n = random.choice([1, 2, 3, 4, 5, 6])
-            m = random.choice([1, 2, 3])
-
+            q_val = f"mp.exp(-mp.pi * mp.sqrt({D}))"
+            
             templates = [
-                f"mp.exp(mp.pi * mp.sqrt({D})) / (mp.sinh(mp.pi * mp.sqrt({D})) / {n})",
-                f"mp.exp({m} * mp.pi * mp.sqrt({D})) / mp.sinh({m} * mp.pi * mp.sqrt({D}))",
-                f"mp.cosh(mp.pi * mp.sqrt({D})) * mp.exp(-mp.pi * mp.sqrt({D}))",
-                f"mp.tanh(mp.pi * mp.sqrt({D}) / {n})",
-                f"(mp.exp(mp.pi * mp.sqrt({D})) - 1) / (mp.exp(mp.pi * mp.sqrt({D})) + 1)",
+                # Ramanujan's theta function identities usually involve ratios of theta functions
+                f"mp.jtheta(3, 0, {q_val}) / mp.jtheta(4, 0, {q_val})",
+                f"mp.jtheta(2, 0, {q_val})**4 + mp.jtheta(4, 0, {q_val})**4",
+                # q-Pochhammer symbol (Dedekind eta related)
+                f"mp.qp({q_val})", 
+                # Mixed theta products
+                f"mp.jtheta(3, 0, {q_val}) * mp.jtheta(4, 0, {q_val})",
             ]
 
             expressions.append(random.choice(templates))
@@ -118,8 +117,11 @@ class SearchTemplates:
                 # Hypergeometric × constants
                 f"mp.hyp2f1(1/{random.randint(2,5)}, 1/{random.randint(2,5)}, 1, 1/{random.randint(2,9)})",
 
-                # Mixed products
-                f"mp.zeta({random.choice([3,5])}) * mp.zeta({random.choice([3,5,7])}) / mp.pi**{random.randint(4,8)}",
+                # Mixed products with Polylogs
+                f"mp.polylog(2, 1/{random.randint(2,5)}) + mp.log({random.randint(2,5)})**2", # Dilogarithm identity area
+                
+                # AGM
+                f"mp.agm(1, mp.sqrt({random.choice([2,3,5,7])})) / mp.pi",
             ]
 
             expressions.append(random.choice(templates))

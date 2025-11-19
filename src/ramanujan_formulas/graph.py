@@ -5,6 +5,7 @@ Defines the state graph for the Ramanujan-Swarm system.
 
 from typing import List
 import math
+import random
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
@@ -24,6 +25,10 @@ from .utils import (
 )
 from .verification import check_novelty_online, save_discovery
 from .trivial_filter import is_trivial_identity
+from .pslq import analyze_discovery_with_pslq
+from .symbolic_simplifier import try_simplify_expression
+from .stability_tester import validate_discovery_stability
+from .breakthrough_injector import inject_breakthroughs, get_breakthrough_injector
 from .config import (
     SWARM_SIZE,
     MAX_ITERATIONS,
@@ -184,8 +189,31 @@ class RamanujanGraph:
                     print(f"  ⚠️  Rejected trivial: {expr[:60]}... - {trivial_reason}")
                 continue
 
+            # Check with PSLQ for linear combinations of known constants
+            if error < 1e-10:  # Only check near-integers
+                is_novel_pslq, pslq_reason = analyze_discovery_with_pslq(expr, value, error)
+                if not is_novel_pslq:
+                    rejection_stats["trivial_identity"] += 1
+                    if rejection_stats["trivial_identity"] <= 5:
+                        print(f"  ⚠️  PSLQ detected known relation: {pslq_reason}")
+                    continue
+
             # Check if worthy of gene pool
             if is_candidate_worthy(error):
+                # Test stability for very small errors
+                if error < 1e-30:
+                    is_stable, stability_msg = validate_discovery_stability(expr, value, error)
+                    if not is_stable:
+                        rejection_stats["high_error"] += 1  # Use existing category
+                        print(f"  ⚠️  Unstable expression: {stability_msg}")
+                        continue
+
+                # Try to simplify the expression
+                simplified_expr, simplification_note = try_simplify_expression(expr, value, error)
+                if simplified_expr != expr:
+                    print(f"  🔧 Simplified: {simplification_note}")
+                    expr = simplified_expr  # Use simplified form
+
                 score = compute_elegance_score(error, expr)
 
                 candidate = Candidate(
@@ -257,6 +285,12 @@ class RamanujanGraph:
         print(f"     • New candidates: {len(new_candidates)}")
         print(f"     • Pool size: {len(best_pool)}/{GENE_POOL_SIZE}")
 
+        # Analyze successful patterns and prepare for breakthrough injection
+        injector = get_breakthrough_injector()
+        for candidate in new_candidates:
+            if candidate["error"] < 1e-20:
+                injector.analyze_success_pattern(candidate["expression"], candidate["error"])
+
         if new_candidates:
             best = min(new_candidates, key=lambda x: x['error'])
             error_str = format_error_magnitude(best['error'])
@@ -276,27 +310,36 @@ class RamanujanGraph:
                 err_str = format_error_magnitude(cand['error'])
                 print(f"     {i}. Error {err_str}: {cand['expression'][:60]}...")
         
+        # Collect rejected expressions for feedback
+        rejected_exprs = [expr for expr in proposed if expr not in {c["expression"] for c in new_candidates}]
+        recent_failures = random.sample(rejected_exprs, min(20, len(rejected_exprs))) if rejected_exprs else []
+
         return {
             "best_candidates": best_pool,
             "discoveries": new_discoveries,
             "tested_hashes": seen_hashes,
             "tested_values": seen_values,
             "proposed_expressions": [],  # Clear for next iteration
+            "recent_failures": recent_failures,
             "iteration": current_iter + 1
         }
     
     def _route_to_swarm(self, state: State) -> str | List[Send]:
         """
         Routing function: determines whether to continue or end.
-        
+
         Args:
             state: Current graph state
-            
+
         Returns:
             END if stopping conditions met, otherwise list of Send objects for swarm
         """
         iteration = state.get("iteration", 1)
         discoveries = state.get("discoveries", [])
+
+        # Inject breakthrough expressions every few iterations
+        if iteration % 3 == 0 and iteration > 1:
+            state = inject_breakthroughs(state)
         
         # Check stopping conditions
         if iteration > MAX_ITERATIONS:
@@ -310,6 +353,7 @@ class RamanujanGraph:
         # Continue: spawn swarm of proposers
         payload = ProposerInput(
             best_candidates=state.get("best_candidates", []),
+            recent_failures=state.get("recent_failures", []),
             iteration=iteration
         )
         
@@ -368,6 +412,7 @@ def create_initial_state() -> State:
         discoveries=[],
         tested_hashes=set(),
         tested_values=set(),
+        recent_failures=[],
         iteration=1
     )
 

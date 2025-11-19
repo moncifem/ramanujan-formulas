@@ -19,6 +19,7 @@ class Candidate(TypedDict):
 class ProposerInput(TypedDict):
     """Input state for proposer agents."""
     best_candidates: List[Candidate]
+    recent_failures: List[str]
     iteration: int
 
 
@@ -35,5 +36,6 @@ class State(TypedDict):
     discoveries: Annotated[List[dict], operator.add]
     tested_hashes: Annotated[Set[int], operator.or_]
     tested_values: Annotated[Set[str], operator.or_]
+    recent_failures: List[str]
     iteration: int
 

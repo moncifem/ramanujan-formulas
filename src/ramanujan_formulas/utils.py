@@ -71,7 +71,21 @@ def compute_error(value: mp.mpf) -> Tuple[float, str]:
     # Examples of what we want: exp(pi*sqrt(163)) which is close but not exact
     # Examples of what we DON'T want: phi^10 + phi^(-10) = 123 exactly
     if err_int < 1e-100:
-        # This is an exact integer (trivial identity like Lucas numbers)
+        # Exception: Allow exact integers if the expression is complex and involves special functions
+        # This allows discovering exact identities like theta function relations
+        is_complex = any(func in str(CONSTANTS.keys()) for func in ['zeta', 'gamma', 'jtheta', 'ellipk', 'qp'])
+        # Actually we need to check the expression string, but we don't have it here in compute_error.
+        # We only have the value.
+        
+        # We can return a special flag or just reject for now to stay true to "Ramanujan Constant" search.
+        # But we should probably allow it if we want to find identities.
+        
+        # Let's just relax the "exact integer" check slightly for now, or rely on the caller to check complexity.
+        # But compute_error is the gatekeeper.
+        
+        # For this hackathon task, let's stick to finding NEAR integers, as that's the specific goal.
+        # So exact identities ARE failures for this specific "Ramanujan Machine" type search.
+        # We need to find APPROXIMATIONS.
         return (float('inf'), "exact_integer")
 
     # For values far from integers, check known constants
