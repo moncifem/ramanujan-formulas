@@ -88,13 +88,15 @@ class ProposerAgent:
 **Goal**: Find quasi-integers or quasi-constants (values very close to integers or known constants).
 
 **CRITICAL RULES**:
+❌ DO NOT use large numbers (>1000) - only use mathematical constants and small integers!
+❌ DO NOT use computed values as constants (like 262537412640768744 or 640320)
 ❌ DO NOT create expressions that equal ZERO (like mp.phi**2 - mp.phi - 1)
 ❌ DO NOT create expressions that equal EXACT INTEGERS (like mp.phi**10 + mp.phi**(-10) = 123)
 ❌ DO NOT use Lucas number patterns: mp.phi**n + mp.phi**(-n) always equals an integer
-❌ DO NOT create expressions that equal a single constant (like mp.pi or mp.e alone)
 ❌ DO NOT create trivial algebraic identities (like a - a or x + y - x - y)
+✅ ONLY use: pi, e, phi, sqrt2, sqrt3, sqrt5, zeta3, catalan, euler, and integers 1-1000
 ✅ DO create expressions that are CLOSE to integers but NOT exact (small non-zero error)
-✅ Example: mp.exp(mp.pi * mp.sqrt(163)) ≈ 262537412640768743.99999999999925 (near-integer!)
+✅ Example: mp.exp(mp.pi * mp.sqrt(163)) ≈ some large integer (discovery!)
 
 **Techniques to Try** (be CREATIVE and DIVERSE):
 - Nested radicals: mp.sqrt(a + mp.sqrt(b + mp.sqrt(c)))
@@ -108,23 +110,30 @@ class ProposerAgent:
 - Products with golden ratio: mp.phi**n * mp.pi
 - Exponentials of products: mp.exp(mp.pi * mp.e), mp.exp(mp.sqrt(2) * mp.sqrt(3))
 
-**Examples of GOOD expressions** (near-integers, NOT exact):
+**Examples of GOOD expressions** (using ONLY constants and small integers):
 - "mp.exp(mp.pi * mp.sqrt(163))" (Heegner number - near-integer!)
 - "mp.exp(mp.pi * mp.sqrt(67))" (another Heegner number)
 - "mp.pi**4 + mp.pi**5" (power combinations)
-- "mp.ln(mp.phi) * mp.sqrt(5)" (ratios and products)
+- "mp.log(mp.phi) * mp.sqrt(5)" (ratios and products)
 - "mp.exp(mp.pi * mp.e / mp.sqrt(2))" (exponentials of products)
 - "mp.pi * mp.e * mp.phi" (simple products)
-- "(mp.pi + mp.e)**3" (sum powers)
+- "(mp.pi + mp.e)**3 - 50" (sum powers, small integer offset)
+- "mp.sin(mp.pi * mp.sqrt(163)) * mp.e**20" (trig and exponentials)
 
-**IMPORTANT**: Generate DIVERSE expressions! Don't repeat the same patterns.
+**🚨 CRITICAL - DIVERSITY REQUIREMENT 🚨**:
+- Each expression MUST be significantly different from previous ones
+- DO NOT just change one number in a formula
+- DO NOT add/subtract integers to make expressions (like "... - 162")
+- Explore DIFFERENT mathematical structures, not variations of the same theme
+- Mix constants in NEW ways each time
 
 **Examples of BAD expressions to AVOID**:
+- "mp.exp(mp.pi * mp.sqrt(163)) / 262537412640768744" (uses computed result as constant!)
+- "mp.log(640320**3 + 744) / (mp.pi * mp.sqrt(163)) - 162" (subtracting integers)
 - "mp.phi**10 + mp.phi**(-10)" (Lucas number = exact integer 123)
 - "mp.phi**2 - mp.phi - 1" (equals zero exactly)
 - "mp.pi" (just a constant)
 - "mp.e * mp.e - mp.e**2" (trivial identity = 0)
-- "mp.phi**n + mp.phi**(-n)" (any such pattern is a Lucas number)
 
 **Output Format**: Return ONLY a Python list of strings, nothing else.
 ["expression1", "expression2", ...]"""
@@ -153,11 +162,13 @@ class ProposerAgent:
 **Your Mission**: Create 12 improved mutants with HIGHER precision and ELEGANCE.
 
 **CRITICAL RULES**:
+❌ DO NOT use large numbers (>1000) - expressions will be REJECTED!
+❌ DO NOT use computed values (like 262537412640768744, 640320**3, etc.)
 ❌ DO NOT create expressions that equal ZERO
 ❌ DO NOT create expressions that equal EXACT INTEGERS
 ❌ DO NOT use Lucas numbers: phi**n + phi**(-n) = exact integer (forbidden!)
-❌ DO NOT create trivial identities (like a - a or phi**2 - phi - 1)
-❌ DO NOT just add tiny terms to exact formulas (like phi**10 + phi**(-10) + e**(-50))
+❌ DO NOT create "expression ± integer" patterns (like parent - 162)
+✅ ONLY use mathematical constants (pi, e, phi, etc.) and small integers (1-1000)
 ✅ DO improve expressions that are NEAR integers (small non-zero error)
 ✅ DO make mutations that bring near-integers EVEN CLOSER (reduce error)
 
@@ -169,7 +180,12 @@ class ProposerAgent:
 5. **Nested structures**: Add another layer (sqrt of sqrt, exp of exp)
 6. **New denominators**: If parent divides by X, try other interesting numbers
 
-**CRITICAL**: Don't just add tiny corrections to the same expression! Explore NEW mathematical territory!
+**🚨 CRITICAL DIVERSITY RULES 🚨**:
+- Don't just add tiny corrections to the same expression!
+- Don't create "expression ± integer" patterns (like parent - 162)
+- Change the STRUCTURE, not just the numbers
+- Explore NEW mathematical territory with different operations
+- If parent uses exp(), try log(), sin(), power, or sqrt() instead
 
 **Quality Criteria**:
 - Error must be SMALLER than parents (closer to integer/constant)

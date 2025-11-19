@@ -12,13 +12,29 @@ from .config import CONSTANTS, COMPLEXITY_PENALTY, CANDIDATE_THRESHOLD
 def evaluate_expression(expr: str) -> Optional[mp.mpf]:
     """
     Safely evaluate a mathematical expression using mpmath.
-    
+
     Args:
         expr: Python expression string using mpmath (aliased as 'mp')
-        
+
     Returns:
         mpf value if successful, None if evaluation fails
     """
+    # CRITICAL: Reject expressions with large numbers (defeats the purpose of discovery)
+    # We want to find that exp(pi*sqrt(163)) ≈ 262537412640768744,
+    # NOT use 262537412640768744 as a constant in expressions!
+    import re
+
+    # Find all numbers in the expression (excluding decimals like 0.5)
+    numbers = re.findall(r'\b(\d{4,})\b', expr)  # Find integers with 4+ digits
+
+    for num_str in numbers:
+        num = int(num_str)
+        # Reject any large numbers (> 1000)
+        # This prevents using computed results as "constants"
+        # Example: Don't allow 262537412640768744 or 640320**3
+        if num > 1000:
+            return None  # Reject: contains large non-fundamental number
+
     try:
         return eval(expr, {"mp": mp}, CONSTANTS)
     except Exception:
@@ -73,10 +89,20 @@ def compute_error(value: mp.mpf) -> Tuple[float, str]:
 def compute_elegance_score(error: float, expression: str) -> float:
     """
     Compute elegance score: Error × (1 + complexity_penalty × length).
-    
+
     This encourages both precision and simplicity.
+    Also heavily penalizes "gaming" patterns like "log(...) - 162"
     """
     complexity_factor = 1 + (COMPLEXITY_PENALTY * len(expression))
+
+    # Detect and penalize "gaming" patterns: expressions ending with ± integer
+    # Pattern: something - 162, something + 143, etc.
+    import re
+    gaming_pattern = r'[+\-]\s*\d{2,}(?:\*\*\d+)?[)\s]*$'
+    if re.search(gaming_pattern, expression):
+        # Heavy penalty for gaming - multiply score by 1000
+        complexity_factor *= 1000
+
     return error * complexity_factor
 
 

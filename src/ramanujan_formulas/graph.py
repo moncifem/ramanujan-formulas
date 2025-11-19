@@ -127,6 +127,7 @@ class RamanujanGraph:
         rejection_stats = {
             "duplicate_expr": 0,
             "eval_failed": 0,
+            "large_numbers": 0,  # Contains numbers > 1000
             "duplicate_value": 0,
             "trivial_zero": 0,
             "exact_integer": 0,
@@ -143,6 +144,14 @@ class RamanujanGraph:
                 rejection_stats["duplicate_expr"] += 1
                 continue
             seen_hashes.add(h)
+
+            # Check for large numbers (>1000) before evaluation
+            import re
+            numbers = re.findall(r'\b(\d{4,})\b', expr)
+            has_large_number = any(int(num) > 1000 for num in numbers)
+            if has_large_number:
+                rejection_stats["large_numbers"] += 1
+                continue
 
             # Evaluate expression
             value = evaluate_expression(expr)
@@ -308,7 +317,7 @@ class RamanujanGraph:
         """
         config = {
             "configurable": {"thread_id": thread_id},
-            "recursion_limit": MAX_ITERATIONS + 10  # Allow for max iterations plus buffer
+            "recursion_limit": MAX_ITERATIONS * 2 + 50  # Double iterations plus buffer for safety
         }
 
         final_state = None

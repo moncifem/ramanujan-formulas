@@ -45,8 +45,8 @@ GENE_POOL_SIZE = 25  # Number of top candidates to retain
 
 # === SCORING PARAMETERS ===
 COMPLEXITY_PENALTY = 0.03  # Penalty per character in expression
-EXPLORATION_RATE_INITIAL = 0.7  # Start with high exploration
-EXPLORATION_RATE_MIN = 0.3  # Keep exploration higher for longer
+EXPLORATION_RATE_INITIAL = 0.8  # Start with very high exploration (80%)
+EXPLORATION_RATE_MIN = 0.5  # Maintain 50% exploration even late in run
 
 # === LLM CONFIGURATION ===
 SUPPORTED_LLM_MODELS: Dict[str, Dict[str, Any]] = {
