@@ -23,25 +23,56 @@ MAX_DISCOVERIES = int(os.getenv("MAX_DISCOVERIES", "5"))
 
 # === MATHEMATICAL CONSTANTS ===
 CONSTANTS: Dict[str, Any] = {
+    # Fundamental constants
     "pi": mp.pi,
     "e": mp.e,
-    "phi": (mp.one + mp.sqrt(5)) / 2,
+    "phi": (mp.one + mp.sqrt(5)) / 2,  # Golden ratio
+
+    # Square roots
     "sqrt2": mp.sqrt(2),
     "sqrt3": mp.sqrt(3),
     "sqrt5": mp.sqrt(5),
+
+    # Logarithms
     "ln2": mp.ln(2),
-    "zeta3": mp.zeta(3),
-    "catalan": mp.catalan,
-    "euler": mp.euler,
-    "khinchin": mp.khinchin,
-    "glaisher": mp.glaisher,
-    "apery": mp.zeta(3),
+    "ln10": mp.ln(10),
+
+    # Zeta values (Ramanujan used these extensively!)
+    "zeta2": mp.zeta(2),  # π²/6
+    "zeta3": mp.zeta(3),  # Apéry's constant
+    "zeta4": mp.zeta(4),  # π⁴/90
+    "zeta5": mp.zeta(5),
+    "zeta6": mp.zeta(6),  # π⁶/945
+
+    # Named constants
+    "catalan": mp.catalan,  # Catalan's constant
+    "euler": mp.euler,  # Euler-Mascheroni constant γ
+    "khinchin": mp.khinchin,  # Khinchin's constant
+    "glaisher": mp.glaisher,  # Glaisher-Kinkelin constant
+    "apery": mp.zeta(3),  # Same as zeta3
+
+    # Special values
+    "pisq": mp.pi ** 2,  # π²
+    "epi": mp.e ** mp.pi,  # e^π
+    "pie": mp.pi ** mp.e,  # π^e
 }
 
 # === THRESHOLDS ===
 CANDIDATE_THRESHOLD = 1e-12  # Minimum error to keep in gene pool
 DISCOVERY_THRESHOLD = 1e-50  # Trigger full verification
 GENE_POOL_SIZE = 25  # Number of top candidates to retain
+
+# === NEW: PATTERN SEARCH MODES ===
+SEARCH_MODES = {
+    "near_integer": True,  # Original: find f(x) ≈ integer
+    "series_convergence": True,  # Find fast-converging series
+    "sequence_pattern": True,  # Find patterns in f(1), f(2), ...
+    "functional_relation": True,  # Find f(x)*g(y) = h(z) patterns
+}
+
+# For sequence pattern mode
+SEQUENCE_LENGTH = 50  # Evaluate f(n) for n=1..50
+MIN_PATTERN_SIGNIFICANCE = 3  # Require pattern in at least 3 consecutive terms
 
 # === SCORING PARAMETERS ===
 COMPLEXITY_PENALTY = 0.03  # Penalty per character in expression

@@ -20,6 +20,7 @@ from .config import (
     MAX_ITERATIONS,
 )
 from .types import ProposerInput, Candidate
+from .search_templates import SearchTemplates
 
 
 class ProposerAgent:
@@ -79,13 +80,56 @@ class ProposerAgent:
         """Build prompt for exploration mode (novel expressions)."""
         constants_list = ", ".join(CONSTANTS.keys())
 
-        return f"""You are a creative mathematical explorer discovering new identities.
+        # Get template expressions to guide the agent
+        path_a_examples = SearchTemplates.generate_path_a_hyperbolic()
+        path_b_examples = SearchTemplates.generate_path_b_gamma_asymmetric()
+        mixed_examples = SearchTemplates.generate_mixed_special_functions()
 
-**Your Task**: Generate 12 symbolic Python expressions using mpmath (aliased as 'mp').
+        return f"""You are a mathematical discovery agent searching for GENUINELY NEW identities.
+
+**Your Task**: Generate 12 expressions using mpmath (aliased as 'mp').
 
 **Available Constants**: {constants_list}
 
-**Goal**: Find quasi-integers or quasi-constants (values very close to integers or known constants).
+**🚨 CRITICAL - YOU ARE REDISCOVERING TEXTBOOK IDENTITIES 🚨**
+
+Your recent attempts found:
+- Γ(x)Γ(1-x)/π = 1/sin(πx) ← Euler reflection (1729!)
+- exp(π√163) ≈ integer ← Heegner (1952!)
+- exp(x)/sinh(x) → 2 ← Trivial calculus!
+
+**ALL OF THESE ARE IN TEXTBOOKS. THEY ARE NOT NEW.**
+
+---
+
+**✅ PATH A: Hyperbolic with NON-STANDARD discriminants**
+
+Use these template structures (with DIFFERENT numbers each time):
+{chr(10).join(f'- {ex}' for ex in path_a_examples[:2])}
+
+**Key**: Use discriminants NOT in {{19,43,67,163,232,427,522,652}}
+Try: {{13,17,21,23,29,31,33,37,41,47,53,57,61,69,71,73,77,79,83,89,...}}
+
+---
+
+**✅ PATH B: Gamma with ASYMMETRIC (not complementary!) combinations**
+
+Use these template structures:
+{chr(10).join(f'- {ex}' for ex in path_b_examples[:2])}
+
+**Key**:
+- DO NOT use Γ(a/p) × Γ((p-a)/p) - that's Euler reflection!
+- USE Γ(a/p)^k × Γ(b/p)^m where a+b ≠ p
+- Try large primes p: 17, 19, 23, 29, 31, 37, 41, 47, 53, 59, 61, 67, 71...
+
+---
+
+**✅ PATH C: Mixed special functions**
+
+Examples:
+{chr(10).join(f'- {ex}' for ex in mixed_examples[:2])}
+
+**Key**: Combine Γ, ζ, ellipk, hyp2f1 in unexpected ways
 
 **CRITICAL RULES**:
 ❌ DO NOT use large numbers (>1000) - only use mathematical constants and small integers!
@@ -98,27 +142,56 @@ class ProposerAgent:
 ✅ DO create expressions that are CLOSE to integers but NOT exact (small non-zero error)
 ✅ Example: mp.exp(mp.pi * mp.sqrt(163)) ≈ some large integer (discovery!)
 
-**Techniques to Try** (be CREATIVE and DIVERSE):
-- Nested radicals: mp.sqrt(a + mp.sqrt(b + mp.sqrt(c)))
-- Exponential towers: mp.exp(mp.pi * mp.sqrt(n)) for n in [19, 43, 67, 163, 232, 522]
-- Logarithmic combinations: mp.log(mp.pi) / mp.log(mp.e)
-- Power series: mp.pi**n + mp.e**m for various n, m
-- Mixed products: mp.pi * mp.e * mp.phi / mp.sqrt(5)
-- Trigonometric: mp.sin(mp.pi * mp.phi) or mp.cos(mp.e)
-- Ratios of constants: mp.pi**2 / mp.zeta(2)
-- Continued fractions with varying depths
-- Products with golden ratio: mp.phi**n * mp.pi
-- Exponentials of products: mp.exp(mp.pi * mp.e), mp.exp(mp.sqrt(2) * mp.sqrt(3))
+**Techniques to Try** (SEARCH FOR NOVELTY):
 
-**Examples of GOOD expressions** (using ONLY constants and small integers):
-- "mp.exp(mp.pi * mp.sqrt(163))" (Heegner number - near-integer!)
-- "mp.exp(mp.pi * mp.sqrt(67))" (another Heegner number)
-- "mp.pi**4 + mp.pi**5" (power combinations)
-- "mp.log(mp.phi) * mp.sqrt(5)" (ratios and products)
-- "mp.exp(mp.pi * mp.e / mp.sqrt(2))" (exponentials of products)
-- "mp.pi * mp.e * mp.phi" (simple products)
-- "(mp.pi + mp.e)**3 - 50" (sum powers, small integer offset)
-- "mp.sin(mp.pi * mp.sqrt(163)) * mp.e**20" (trig and exponentials)
+**1. Mixed Special Function Products** (NOT just Heegner!):
+- mp.gamma(1/5) * mp.zeta(5) / mp.ellipk(1/3)
+- mp.hyp2f1(1/3, 2/3, 1, 1/4) * mp.zeta(3)
+- mp.ellipe(phi/5) / mp.gamma(3/7)
+
+**2. Unexpected Ratios**:
+- mp.zeta(5) * mp.zeta(7) / (mp.pi**12)
+- mp.gamma(1/7) / (mp.gamma(2/7) * mp.gamma(4/7))
+- mp.ellipk(1/3) / mp.ellipk(1/5)
+
+**3. Zeta Function Relationships** (Ramanujan's favorite):
+- mp.zeta(2) * mp.zeta(3) / mp.pi**5
+- mp.zeta(4) / mp.pi**4
+- mp.zeta(5) * mp.phi**2
+- zeta2, zeta3, zeta4, zeta5, zeta6 are all available!
+
+**4. Gamma Function** (factorials):
+- mp.gamma(1/3) * mp.gamma(2/3) / mp.pi
+- mp.gamma(1/4)**4 / mp.pi**2
+- mp.factorial(20) / mp.e**20
+
+**5. Nested Radicals** (Ramanujan's specialty):
+- mp.sqrt(1 + 2*mp.sqrt(1 + 3*mp.sqrt(1 + 4*mp.sqrt(1 + ...))))
+- mp.sqrt(mp.phi + mp.sqrt(mp.phi + mp.sqrt(mp.phi)))
+
+**6. Mixed Operations**:
+- mp.log(mp.gamma(1/4)) * mp.sqrt(mp.pi)
+- mp.sin(mp.pi/5) * mp.phi**2
+- mp.log(epi) / mp.log(pie)  # epi and pie are available!
+
+**7. Elliptic Integrals** (advanced):
+- mp.ellipk(1/2) / mp.pi
+- mp.ellipe(mp.phi/3)
+
+**8. Hypergeometric Functions**:
+- mp.hyp2f1(1/2, 1/2, 1, mp.phi/2)
+- mp.hyp1f1(1, 2, mp.pi)
+
+**Examples of GOOD Ramanujan-style expressions**:
+- "mp.exp(mp.pi * mp.sqrt(163))" (Heegner number - his most famous!)
+- "mp.gamma(1/4) / (mp.pi**(3/4))" (Gamma function relationship)
+- "mp.zeta(2) * 6 / mp.pi**2" (should equal 1 - Basel problem)
+- "mp.sinh(mp.pi * mp.sqrt(522)) / mp.exp(mp.pi * mp.sqrt(522))" (hyperbolic)
+- "mp.ellipk(1/2)**2 / mp.pi" (elliptic integral)
+- "mp.hyp2f1(1/2, 1/2, 1, 1/2)" (hypergeometric)
+- "mp.sqrt(phi + mp.sqrt(phi))" (nested radical)
+- "mp.log(epi) - mp.pi" (should be near 0)
+- "mp.gamma(1/3) * mp.gamma(2/3) / mp.sqrt(mp.pi)" (reflection formula)
 
 **🚨 CRITICAL - DIVERSITY REQUIREMENT 🚨**:
 - Each expression MUST be significantly different from previous ones
@@ -172,13 +245,15 @@ class ProposerAgent:
 ✅ DO improve expressions that are NEAR integers (small non-zero error)
 ✅ DO make mutations that bring near-integers EVEN CLOSER (reduce error)
 
-**Mutation Strategies** (be CREATIVE, explore NEW directions):
-1. **Try different Heegner numbers**: If parent has sqrt(163), try sqrt(19), sqrt(43), sqrt(67), sqrt(232)
-2. **Change the operation**: If parent uses exp(), try log(), sin(), or power operations
-3. **Hybridization**: Combine elements from BOTH parents in novel ways
-4. **Different constants**: Replace pi with e, or phi with zeta(3), etc.
-5. **Nested structures**: Add another layer (sqrt of sqrt, exp of exp)
-6. **New denominators**: If parent divides by X, try other interesting numbers
+**Mutation Strategies** (RAMANUJAN-STYLE evolution):
+1. **Try different Heegner numbers**: sqrt(19), sqrt(43), sqrt(67), sqrt(163), sqrt(232), sqrt(427), sqrt(522), sqrt(652)
+2. **Add special functions**: Replace exp() with sinh(), cosh(), gamma(), zeta(), ellipk()
+3. **Hybridization**: Combine both parents with * or / operations
+4. **Use new constants**: zeta2, zeta4, zeta5, epi, pie, pisq
+5. **Add nested structure**: sqrt(parent + sqrt(parent))
+6. **Elliptic/Hypergeometric**: Wrap in mp.ellipk(), mp.hyp2f1()
+7. **Gamma relationships**: Use mp.gamma(rational) with small fractions
+8. **Zeta combinations**: Multiply by zeta values or divide by pi powers
 
 **🚨 CRITICAL DIVERSITY RULES 🚨**:
 - Don't just add tiny corrections to the same expression!

@@ -23,6 +23,7 @@ from .utils import (
     expression_hash,
 )
 from .verification import check_novelty_online, save_discovery
+from .trivial_filter import is_trivial_identity
 from .config import (
     SWARM_SIZE,
     MAX_ITERATIONS,
@@ -129,6 +130,7 @@ class RamanujanGraph:
             "eval_failed": 0,
             "large_numbers": 0,  # Contains numbers > 1000
             "duplicate_value": 0,
+            "trivial_identity": 0,  # NEW: Euler/Gauss/known formulas
             "trivial_zero": 0,
             "exact_integer": 0,
             "trivial_constant": 0,
@@ -172,6 +174,15 @@ class RamanujanGraph:
             # Track rejection by target type
             if target_type in rejection_stats:
                 rejection_stats[target_type] += 1
+
+            # NEW: Check if trivial identity (Euler/Gauss/Heegner/etc)
+            is_trivial, trivial_reason = is_trivial_identity(expr, value, error)
+            if is_trivial:
+                rejection_stats["trivial_identity"] += 1
+                # Log first few trivial rejections for debugging
+                if rejection_stats["trivial_identity"] <= 3:
+                    print(f"  ⚠️  Rejected trivial: {expr[:60]}... - {trivial_reason}")
+                continue
 
             # Check if worthy of gene pool
             if is_candidate_worthy(error):

@@ -31,8 +31,7 @@ ENV/
 .env.local
 
 # Results
-results/
-*.json
+
 FINAL_REPORT.md
 
 # IDE
