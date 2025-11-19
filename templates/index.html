@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧬 Ramanujan-Swarm | Mathematical Discovery Engine</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .control-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        select, input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        select:focus, input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .status-panel, .progress-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .status-panel h3, .progress-panel h3 {
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .status-value {
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .running-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 10px;
+        }
+
+        .running-indicator.active {
+            background: #4CAF50;
+            animation: pulse 2s infinite;
+        }
+
+        .running-indicator.inactive {
+            background: #ccc;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .discoveries-section {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .discoveries-section h3 {
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .discovery-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            transition: transform 0.3s;
+        }
+
+        .discovery-item:hover {
+            transform: translateX(5px);
+        }
+
+        .discovery-expression {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .discovery-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .discovery-detail {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .log-section {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 30px;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .log-section h3 {
+            color: #00ff00;
+            margin-bottom: 15px;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .log-entry.info {
+            color: #00ff00;
+        }
+
+        .log-entry.success {
+            color: #ffff00;
+            background: rgba(255, 255, 0, 0.1);
+        }
+
+        .log-entry.error {
+            color: #ff4444;
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+
+        .export-section {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+        }
+
+        .connection-status.connected {
+            background: #4CAF50;
+        }
+
+        .connection-status.disconnected {
+            background: #f44336;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .control-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">Connecting...</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🧬 Ramanujan-Swarm</h1>
+            <p>Autonomous Mathematical Discovery via Genetic Agents</p>
+        </div>
+
+        <div class="control-panel">
+            <div class="control-row">
+                <div class="control-group">
+                    <label for="targetConstant">Target Constant:</label>
+                    <select id="targetConstant">
+                        <option value="pi">π (Pi)</option>
+                        <option value="e">e (Euler's number)</option>
+                        <option value="phi">φ (Golden ratio)</option>
+                        <option value="gamma">γ (Euler-Mascheroni)</option>
+                        <option value="zeta3">ζ(3) (Apéry's constant)</option>
+                    </select>
+                </div>
+                
+                <div class="control-group">
+                    <label for="maxGenerations">Max Generations:</label>
+                    <input type="number" id="maxGenerations" value="50" min="1" max="200">
+                </div>
+                
+                <button class="btn btn-primary" id="startBtn" onclick="startDiscovery()">
+                    🚀 Start Discovery
+                </button>
+                
+                <button class="btn btn-danger" id="stopBtn" onclick="stopDiscovery()" disabled>
+                    ⏹️ Stop Discovery
+                </button>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="status-panel">
+                <h3>📊 Discovery Status</h3>
+                <div class="status-item">
+                    <span class="status-label">Status:</span>
+                    <span class="status-value" id="runningStatus">
+                        Idle <span class="running-indicator inactive" id="runningIndicator"></span>
+                    </span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Generation:</span>
+                    <span class="status-value" id="currentGeneration">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Target:</span>
+                    <span class="status-value" id="currentTarget">None</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Expressions Evaluated:</span>
+                    <span class="status-value" id="totalEvaluated">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Discoveries Found:</span>
+                    <span class="status-value" id="totalDiscoveries">0</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-label">Gene Pool Size:</span>
+                    <span class="status-value" id="genePoolSize">0</span>
+                </div>
+            </div>
+
+            <div class="progress-panel">
+                <h3>📈 Progress Visualization</h3>
+                <canvas id="progressChart" width="400" height="300"></canvas>
+            </div>
+        </div>
+
+        <div class="discoveries-section">
+            <h3>🎯 Mathematical Discoveries</h3>
+            <div class="export-section">
+                <button class="btn btn-primary" onclick="exportDiscoveries()">
+                    💾 Export Discoveries
+                </button>
+            </div>
+            <div id="discoveriesList">
+                <p style="text-align: center; color: #666; font-style: italic;">
+                    No discoveries yet. Start a discovery session to find mathematical relationships!
+                </p>
+            </div>
+        </div>
+
+        <div class="log-section">
+            <h3>📝 Real-time Log</h3>
+            <div id="logContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Socket.IO connection
+        const socket = io();
+        
+        // Chart setup
+        let progressChart;
+        let generationData = [];
+        let discoveryData = [];
+        
+        // Connection status
+        const connectionStatus = document.getElementById('connectionStatus');
+        
+        socket.on('connect', function() {
+            connectionStatus.textContent = 'Connected';
+            connectionStatus.className = 'connection-status connected';
+            addLogEntry('Connected to Ramanujan-Swarm server', 'success');
+            socket.emit('request_status');
+        });
+        
+        socket.on('disconnect', function() {
+            connectionStatus.textContent = 'Disconnected';
+            connectionStatus.className = 'connection-status disconnected';
+            addLogEntry('Disconnected from server', 'error');
+        });
+        
+        // Initialize progress chart
+        function initChart() {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            progressChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Expressions per Generation',
+                        data: [],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Discoveries Found',
+                        data: [],
+                        borderColor: '#4CAF50',
+                        backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Socket event handlers
+        socket.on('swarm_update', function(data) {
+            handleSwarmUpdate(data);
+        });
+        
+        socket.on('status_update', function(data) {
+            updateStatus(data);
+        });
+        
+        socket.on('error', function(data) {
+            addLogEntry('Error: ' + data.message, 'error');
+        });
+        
+        function handleSwarmUpdate(update) {
+            const { event_type, data } = update;
+            
+            if (event_type === 'generation_start') {
+                addLogEntry(`Starting generation ${data.generation} for ${data.target}`, 'info');
+            } else if (event_type === 'generation_complete') {
+                addLogEntry(`Generation ${data.generation} complete: ${data.expressions_evaluated} expressions evaluated`, 'info');
+                
+                if (data.new_discoveries && data.new_discoveries.length > 0) {
+                    addLogEntry(`🎉 Found ${data.new_discoveries.length} new discoveries!`, 'success');
+                }
+                
+                // Update chart
+                updateChart(data);
+                
+                // Update discoveries display
+                updateDiscoveries();
+            }
+            
+            // Update status
+            updateStatus(data);
+        }
+        
+        function updateStatus(data) {
+            document.getElementById('currentGeneration').textContent = data.generation || 0;
+            document.getElementById('currentTarget').textContent = data.target_constant || 'None';
+            document.getElementById('totalEvaluated').textContent = data.total_evaluated || 0;
+            document.getElementById('totalDiscoveries').textContent = (data.discoveries && data.discoveries.length) || 0;
+            document.getElementById('genePoolSize').textContent = data.gene_pool_size || 0;
+            
+            const isRunning = data.running;
+            const runningStatus = document.getElementById('runningStatus');
+            const runningIndicator = document.getElementById('runningIndicator');
+            
+            if (isRunning) {
+                runningStatus.innerHTML = 'Running <span class="running-indicator active" id="runningIndicator"></span>';
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+            } else {
+                runningStatus.innerHTML = 'Idle <span class="running-indicator inactive" id="runningIndicator"></span>';
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+            }
+        }
+        
+        function updateChart(data) {
+            if (!progressChart) return;
+            
+            const generation = data.generation;
+            const expressionsEvaluated = data.expressions_evaluated || 0;
+            const newDiscoveries = (data.new_discoveries && data.new_discoveries.length) || 0;
+            
+            progressChart.data.labels.push(`Gen ${generation}`);
+            progressChart.data.datasets[0].data.push(expressionsEvaluated);
+            progressChart.data.datasets[1].data.push(newDiscoveries);
+            
+            // Keep only last 20 data points
+            if (progressChart.data.labels.length > 20) {
+                progressChart.data.labels.shift();
+                progressChart.data.datasets[0].data.shift();
+                progressChart.data.datasets[1].data.shift();
+            }
+            
+            progressChart.update();
+        }
+        
+        function updateDiscoveries() {
+            fetch('/api/discoveries')
+                .then(response => response.json())
+                .then(data => {
+                    const discoveriesList = document.getElementById('discoveriesList');
+                    
+                    if (data.discoveries && data.discoveries.length > 0) {
+                        discoveriesList.innerHTML = data.discoveries.map(discovery => `
+                            <div class="discovery-item">
+                                <div class="discovery-expression">${discovery.expression}</div>
+                                <div class="discovery-details">
+                                    <div class="discovery-detail">
+                                        <span>Value:</span>
+                                        <span>${discovery.value ? discovery.value.toExponential(6) : 'N/A'}</span>
+                                    </div>
+                                    <div class="discovery-detail">
+                                        <span>Error:</span>
+                                        <span>${discovery.error ? discovery.error.toExponential(3) : 'N/A'}</span>
+                                    </div>
+                                    <div class="discovery-detail">
+                                        <span>Generation:</span>
+                                        <span>${discovery.generation || 'N/A'}</span>
+                                    </div>
+                                    <div class="discovery-detail">
+                                        <span>Elegance:</span>
+                                        <span>${discovery.elegance_score ? discovery.elegance_score.toExponential(3) : 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        discoveriesList.innerHTML = `
+                            <p style="text-align: center; color: #666; font-style: italic;">
+                                No discoveries yet. Start a discovery session to find mathematical relationships!
+                            </p>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching discoveries:', error);
+                });
+        }
+        
+        function addLogEntry(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // Keep only last 100 log entries
+            while (logContainer.children.length > 100) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+        
+        function startDiscovery() {
+            const targetConstant = document.getElementById('targetConstant').value;
+            const maxGenerations = parseInt(document.getElementById('maxGenerations').value);
+            
+            fetch('/api/start_discovery', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    target_constant: targetConstant,
+                    max_generations: maxGenerations
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    addLogEntry('Error starting discovery: ' + data.error, 'error');
+                } else {
+                    addLogEntry(`Discovery session started for ${data.target_constant}`, 'success');
+                }
+            })
+            .catch(error => {
+                addLogEntry('Error starting discovery: ' + error.message, 'error');
+            });
+        }
+        
+        function stopDiscovery() {
+            fetch('/api/stop_discovery', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    addLogEntry('Error stopping discovery: ' + data.error, 'error');
+                } else {
+                    addLogEntry('Discovery session stopped', 'info');
+                }
+            })
+            .catch(error => {
+                addLogEntry('Error stopping discovery: ' + error.message, 'error');
+            });
+        }
+        
+        function exportDiscoveries() {
+            fetch('/api/export_discoveries')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        addLogEntry('Error exporting discoveries: ' + data.error, 'error');
+                    } else {
+                        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `ramanujan_discoveries_${new Date().toISOString().split('T')[0]}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        
+                        addLogEntry(`Exported ${data.total_discoveries} discoveries`, 'success');
+                    }
+                })
+                .catch(error => {
+                    addLogEntry('Error exporting discoveries: ' + error.message, 'error');
+                });
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+            updateDiscoveries();
+            
+            // Request initial status
+            setTimeout(() => {
+                socket.emit('request_status');
+            }, 1000);
+        });
+        
+        // Auto-refresh discoveries every 30 seconds
+        setInterval(updateDiscoveries, 30000);
+    </script>
+</body>
+</html>
